@@ -100,6 +100,7 @@
           const [showResults, setShowResults] = useState(false);
           const [allVotes, setAllVotes] = useState({});
           const [loading, setLoading] = useState(true);
+          const [hasCompletedSurvey, setHasCompletedSurvey] = useState(false);
 
           const allQuestions = questions.flatMap(cat => 
             cat.items.map(q => ({ category: cat.category, question: q }))
@@ -107,7 +108,13 @@
 
           useEffect(() => {
             loadVotes();
+            checkIfUserCompleted();
           }, []);
+
+          const checkIfUserCompleted = () => {
+            const completed = localStorage.getItem('survey-completed');
+            setHasCompletedSurvey(completed === 'true');
+          };
 
           const loadVotes = () => {
             const votesRef = database.ref('votes');
@@ -149,6 +156,10 @@
               });
 
               await database.ref().update(updates);
+              
+              // Salva che l'utente ha completato il sondaggio
+              localStorage.setItem('survey-completed', 'true');
+              setHasCompletedSurvey(true);
               setShowResults(true);
             } catch (error) {
               console.error('Errore nel salvataggio:', error);
@@ -192,6 +203,14 @@
             }
           };
 
+          const handleViewResults = () => {
+            if (!hasCompletedSurvey) {
+              alert('⚠️ Devi prima completare il sondaggio per vedere i risultati!');
+              return;
+            }
+            setShowResults(true);
+          };
+
           if (loading) {
             return (
               <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
@@ -227,10 +246,10 @@
                       Inizia il Sondaggio
                     </button>
                     <button
-                      onClick={() => setShowResults(true)}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+                      onClick={handleViewResults}
+                      className={`w-full ${hasCompletedSurvey ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 hover:bg-gray-500'} text-white font-bold py-2 px-4 rounded-lg transition duration-200`}
                     >
-                      Visualizza Risultati
+                      {hasCompletedSurvey ? '📊 Visualizza Risultati' : '🔒 Risultati (Completa prima il sondaggio)'}
                     </button>
                   </div>
                 </div>
@@ -256,7 +275,7 @@
                         onClick={resetSurvey}
                         className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200"
                       >
-                        Compila un altro sondaggio
+                        Torna alla Home
                       </button>
                       <button
                         onClick={clearAllData}
